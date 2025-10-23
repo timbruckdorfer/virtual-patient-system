@@ -49,12 +49,34 @@ jobs:
             --platform=managed \
             --allow-unauthenticated \
             --add-cloudsql-instances=${{ secrets.CLOUD_SQL_CONNECTION_NAME }} \
-            --update-env-vars="ENVIRONMENT=production,CLOUD_SQL_CONNECTION_NAME=${{ secrets.CLOUD_SQL_CONNECTION_NAME }},DB_USER=${{ secrets.DB_USER }},DB_PASSWORD=${{ secrets.DB_PASSWORD }},DB_NAME=${{ secrets.DB_NAME }},OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},OPENAI_MODEL=gpt-4o-mini,APP_SECRET_KEY=${{ secrets.APP_SECRET_KEY }},REQUIRE_AUTH=false,OIDC_ISSUER=${{ secrets.OIDC_ISSUER }},OIDC_CLIENT_ID=${{ secrets.OIDC_CLIENT_ID }},OIDC_CLIENT_SECRET=${{ secrets.OIDC_CLIENT_SECRET }},OIDC_AUTH_URL=${{ secrets.OIDC_AUTH_URL }},OIDC_TOKEN_URL=${{ secrets.OIDC_TOKEN_URL }},OIDC_JWKS_URL=${{ secrets.OIDC_JWKS_URL }},OIDC_REDIRECT_URI=${{ secrets.OIDC_REDIRECT_URI }},FRONTEND_URL=${{ secrets.FRONTEND_URL }},VHB_PASSWORD=${{ secrets.VHB_PASSWORD }}" \
             --memory=1Gi \
             --cpu=1 \
             --timeout=300 \
             --max-instances=10 \
             --min-instances=0
+      
+      - name: Set environment variables
+        run: |
+          gcloud run services update ${{ env.SERVICE_NAME }} \
+            --region=${{ env.REGION }} \
+            --update-env-vars=ENVIRONMENT=production \
+            --update-env-vars=CLOUD_SQL_CONNECTION_NAME=${{ secrets.CLOUD_SQL_CONNECTION_NAME }} \
+            --update-env-vars=DB_USER=${{ secrets.DB_USER }} \
+            --update-env-vars=DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
+            --update-env-vars=DB_NAME=${{ secrets.DB_NAME }} \
+            --update-env-vars=OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
+            --update-env-vars=OPENAI_MODEL=gpt-4o-mini \
+            --update-env-vars=APP_SECRET_KEY=${{ secrets.APP_SECRET_KEY }} \
+            --update-env-vars=REQUIRE_AUTH=false \
+            --update-env-vars=OIDC_ISSUER=${{ secrets.OIDC_ISSUER }} \
+            --update-env-vars=OIDC_CLIENT_ID=${{ secrets.OIDC_CLIENT_ID }} \
+            --update-env-vars=OIDC_CLIENT_SECRET=${{ secrets.OIDC_CLIENT_SECRET }} \
+            --update-env-vars=OIDC_AUTH_URL=${{ secrets.OIDC_AUTH_URL }} \
+            --update-env-vars=OIDC_TOKEN_URL=${{ secrets.OIDC_TOKEN_URL }} \
+            --update-env-vars=OIDC_JWKS_URL=${{ secrets.OIDC_JWKS_URL }} \
+            --update-env-vars=OIDC_REDIRECT_URI=${{ secrets.OIDC_REDIRECT_URI }} \
+            --update-env-vars=FRONTEND_URL=${{ secrets.FRONTEND_URL }} \
+            --update-env-vars=VHB_PASSWORD=${{ secrets.VHB_PASSWORD }}
       
       - name: Output service URL
         run: |
