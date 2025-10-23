@@ -15,7 +15,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+# lib/ - commented out to allow frontend/src/lib
+# Python venv lib folders are already ignored by mri_env/ and venv/
 lib64/
 parts/
 sdist/
