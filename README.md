@@ -4,6 +4,8 @@
 
 An interactive web application that simulates patient encounters for medical students to practice anamnesis (patient history taking) using AI-powered virtual patients.
 
+🚀 **Deployed at:** [https://virtual-patient-system-457056093077.europe-west3.run.app](https://virtual-patient-system-457056093077.europe-west3.run.app)
+
 ## 🌟 Features
 
 - **AI-Powered Virtual Patients**: 7+ realistic patient scenarios powered by OpenAI GPT-4
