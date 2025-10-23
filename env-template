@@ -1,0 +1,36 @@
+# Environment Configuration Template
+# Copy this file to .env and fill in your actual values
+# NEVER commit the .env file to version control!
+
+# Application Environment
+ENVIRONMENT=development
+PORT=8000
+
+# Database Configuration
+# Local development: postgresql+psycopg://localhost/vpatient
+# Production (Cloud SQL): Will be set automatically in Cloud Run
+DATABASE_URL=postgresql+psycopg://localhost/vpatient
+
+# OpenAI API
+OPENAI_API_KEY=your-openai-api-key-here
+OPENAI_MODEL=gpt-4o-mini
+
+# TUM OIDC Authentication
+OIDC_ISSUER=https://login.tum.de/realms/tum
+OIDC_CLIENT_ID=your-client-id
+OIDC_CLIENT_SECRET=your-client-secret
+OIDC_AUTH_URL=https://login.tum.de/realms/tum/protocol/openid-connect/auth
+OIDC_TOKEN_URL=https://login.tum.de/realms/tum/protocol/openid-connect/token
+OIDC_JWKS_URL=https://login.tum.de/realms/tum/protocol/openid-connect/certs
+OIDC_REDIRECT_URI=http://localhost:8000/auth/callback
+
+# Application Security
+APP_SECRET_KEY=generate-with-python3-c-import-secrets-print-secrets-token-urlsafe-32
+REQUIRE_AUTH=false
+
+# Frontend URL (for OIDC redirects)
+FRONTEND_URL=http://localhost:3000
+
+# VHB External Login
+VHB_PASSWORD=your-vhb-password-here
+
