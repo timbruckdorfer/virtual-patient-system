@@ -13,15 +13,15 @@ DATABASE_URL=postgresql+psycopg://localhost/vpatient
 
 # OpenAI API
 OPENAI_API_KEY=your-openai-api-key-here
-OPENAI_MODEL=gpt-4o-mini
+OPENAI_MODEL=gpt-4o
 
 # TUM OIDC Authentication
-OIDC_ISSUER=https://login.tum.de/realms/tum
+OIDC_ISSUER=https://tumidp.lrz.de/idp/shibboleth
 OIDC_CLIENT_ID=your-client-id
 OIDC_CLIENT_SECRET=your-client-secret
-OIDC_AUTH_URL=https://login.tum.de/realms/tum/protocol/openid-connect/auth
-OIDC_TOKEN_URL=https://login.tum.de/realms/tum/protocol/openid-connect/token
-OIDC_JWKS_URL=https://login.tum.de/realms/tum/protocol/openid-connect/certs
+OIDC_AUTH_URL=https://login.tum.de/idp/profile/oidc/authorize
+OIDC_TOKEN_URL=https://login.tum.de/idp/profile/oidc/token
+OIDC_JWKS_URL=https://login.tum.de/idp/profile/oidc/keyset
 OIDC_REDIRECT_URI=http://localhost:8000/auth/callback
 
 # Application Security
