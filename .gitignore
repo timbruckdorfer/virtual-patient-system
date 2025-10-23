@@ -77,3 +77,5 @@ temp/
 # Alembic
 # Note: We keep alembic/ directory and migrations
 
+frontend/.next/
+frontend/dist/
