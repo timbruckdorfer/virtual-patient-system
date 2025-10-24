@@ -1,6 +1,19 @@
 import { useState } from 'react';
 import { SessionCreateResponse } from '@/types';
 
+// Use same API URL logic as api.ts
+const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  if (typeof window !== 'undefined' && !window.location.hostname.includes('localhost')) {
+    return window.location.origin;
+  }
+  return 'http://localhost:8000';
+};
+
+const API_BASE_URL = getApiBaseUrl();
+
 export function useSession() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -10,7 +23,7 @@ export function useSession() {
     setError(null);
     
     try {
-      const response = await fetch('http://localhost:8000/api/sessions', {
+      const response = await fetch(`${API_BASE_URL}/api/sessions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -13,6 +13,19 @@ import { MessageBubble } from '@/components/MessageBubble';
 import { ChatInput } from '@/components/ChatInput';
 import { SessionInfo } from '@/components/SessionInfo';
 
+// Use same API URL logic as api.ts
+const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  if (typeof window !== 'undefined' && !window.location.hostname.includes('localhost')) {
+    return window.location.origin;
+  }
+  return 'http://localhost:8000';
+};
+
+const API_BASE_URL = getApiBaseUrl();
+
 interface ChatInterfaceProps {
   sessionId: string;
   caseId: string;
@@ -48,7 +61,7 @@ export function ChatInterface({ sessionId, caseId, onReset }: ChatInterfaceProps
     // Fetch case details when component mounts
     const fetchCaseDetails = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/cases/${caseId}`, {
+        const response = await fetch(`${API_BASE_URL}/api/cases/${caseId}`, {
           credentials: 'include',
         });
         if (response.ok) {
@@ -78,7 +91,7 @@ export function ChatInterface({ sessionId, caseId, onReset }: ChatInterfaceProps
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:8000/api/chat', {
+      const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
