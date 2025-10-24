@@ -4,7 +4,9 @@
 
 An interactive web application that simulates patient encounters for medical students to practice anamnesis (patient history taking) using AI-powered virtual patients.
 
-🚀 **Deployed at:** [https://virtual-patient-system-457056093077.europe-west3.run.app](https://virtual-patient-system-457056093077.europe-west3.run.app)
+🚀 **Deployed at:** [https://virtual-patients-tum.com](https://virtual-patients-tum.com)
+
+*Alternative URL:* [https://virtual-patient-system-457056093077.europe-west3.run.app](https://virtual-patient-system-457056093077.europe-west3.run.app)
 
 ## 🌟 Features
 
@@ -28,7 +30,8 @@ An interactive web application that simulates patient encounters for medical stu
 
 The application is deployed on Google Cloud Platform:
 
-- **Production URL**: `https://virtual-patient-system-457056093077.europe-west3.run.app`
+- **Production URL**: `https://virtual-patients-tum.com`
+- **Cloud Run URL**: `https://virtual-patient-system-457056093077.europe-west3.run.app`
 - **CI/CD**: Automated deployment via GitHub Actions
 - **Infrastructure**: Cloud Run + Cloud SQL + Artifact Registry
 

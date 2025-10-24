@@ -22,14 +22,20 @@ OIDC_CLIENT_SECRET=your-client-secret
 OIDC_AUTH_URL=https://login.tum.de/idp/profile/oidc/authorize
 OIDC_TOKEN_URL=https://login.tum.de/idp/profile/oidc/token
 OIDC_JWKS_URL=https://login.tum.de/idp/profile/oidc/keyset
+# Local development:
 OIDC_REDIRECT_URI=http://localhost:8000/auth/callback
+# Production:
+# OIDC_REDIRECT_URI=https://virtual-patients-tum.com/auth/callback
 
 # Application Security
 APP_SECRET_KEY=generate-with-python3-c-import-secrets-print-secrets-token-urlsafe-32
 REQUIRE_AUTH=false
 
 # Frontend URL (for OIDC redirects)
+# Local development:
 FRONTEND_URL=http://localhost:3000
+# Production:
+# FRONTEND_URL=https://virtual-patients-tum.com
 
 # VHB External Login
 VHB_PASSWORD=your-vhb-password-here

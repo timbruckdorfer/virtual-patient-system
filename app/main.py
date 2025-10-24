@@ -48,6 +48,18 @@ async def health() -> dict:
     return {"status": "ok"}
 
 
+@app.get("/health/db")
+async def health_db(db: OrmSession = Depends(get_db)) -> dict:
+    """Check database connectivity."""
+    try:
+        # Simple query to test DB connection
+        result = db.execute(func.now())
+        timestamp = result.scalar()
+        return {"status": "ok", "database": "connected", "timestamp": str(timestamp)}
+    except Exception as e:
+        return {"status": "error", "database": "disconnected", "error": str(e)}
+
+
 # ---------------------
 # OIDC Authentication
 # ---------------------
