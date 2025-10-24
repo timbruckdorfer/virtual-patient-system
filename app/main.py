@@ -87,14 +87,18 @@ def _verify(token: str) -> dict:
         raise HTTPException(status_code=401, detail="Invalid session")
 
 
-def _set_cookie(response: RedirectResponse, name: str, value: str, max_age: int = 3600) -> None:
+def _set_cookie(response, name: str, value: str, max_age: int = 3600) -> None:
+    # In production (HTTPS), cookies must have secure=True
+    # In development (HTTP), secure=False is needed
+    is_production = settings.environment == "production"
+    
     response.set_cookie(
         key=name,
         value=value,
         max_age=max_age,
         httponly=True,
-        secure=False,
-        samesite="lax",  # Lax is fine when using Vite proxy (same-origin)
+        secure=is_production,  # True in production (HTTPS), False in dev (HTTP)
+        samesite="lax",
         path="/",
     )
 
