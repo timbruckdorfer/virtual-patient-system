@@ -14,7 +14,18 @@ interface UseAuthReturn {
   refetch: () => Promise<void>;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// Use same API URL logic as api.ts and LoginPage.tsx
+const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  if (typeof window !== 'undefined' && !window.location.hostname.includes('localhost')) {
+    return window.location.origin;
+  }
+  return 'http://localhost:8000';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export function useAuth(): UseAuthReturn {
   const [user, setUser] = useState<User | null>(null);
