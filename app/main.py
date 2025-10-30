@@ -20,7 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from jose import jwt, JWTError
 from jose.utils import base64url_decode
 
-# Updated: Trigger redeployment to pick up new OIDC configuration
+# Trigger redeployment with OIDC_AUTH_URL secret now configured
 app = FastAPI(title="Virtual Patient Backend", version="0.1.0")
 
 # Add CORS middleware
