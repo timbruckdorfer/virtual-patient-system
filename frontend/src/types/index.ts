@@ -33,3 +33,17 @@ export interface ChatResponse {
   tokens_out?: number;
 }
 
+export interface EvaluationCriterion {
+  name: string;
+  score: number;
+  explanation: string;
+}
+
+export interface Evaluation {
+  id: number;
+  session_id: string;
+  created_at: string;
+  criteria: EvaluationCriterion[];
+  improvement_suggestions: string[];
+}
+

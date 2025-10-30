@@ -32,6 +32,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app/ ./app/
 COPY alembic/ ./alembic/
 COPY alembic.ini ./
+COPY start.sh ./
+
+# Make startup script executable
+RUN chmod +x start.sh
 
 # Copy frontend build from previous stage
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
@@ -39,6 +43,6 @@ COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 # Expose port (Cloud Run will set PORT env var)
 EXPOSE 8080
 
-# Run the application
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}
+# Run migrations and start the application
+CMD ["./start.sh"]
 

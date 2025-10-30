@@ -1,3 +1,5 @@
+import { Evaluation } from '@/types';
+
 // In production (Cloud Run), frontend and backend are served from same origin
 // In development, use localhost:8000
 const getApiBaseUrl = () => {
@@ -113,6 +115,20 @@ export class ApiClient {
 
     if (!response.ok) {
       throw new Error(`Failed to get session messages: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  async evaluateSession(sessionId: string): Promise<Evaluation> {
+    const response = await fetch(`${this.baseUrl}/api/sessions/${sessionId}/evaluate`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ detail: response.statusText }));
+      throw new Error(errorData.detail || `Failed to evaluate session: ${response.statusText}`);
     }
 
     return response.json();

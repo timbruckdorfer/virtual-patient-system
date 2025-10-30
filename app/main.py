@@ -14,7 +14,7 @@ from .config import settings
 from .db import get_db
 from sqlalchemy.orm import Session as OrmSession
 from sqlalchemy import func, desc
-from .models import Case, Session as ChatSession, Message
+from .models import Case, Session as ChatSession, Message, Evaluation
 
 from fastapi.middleware.cors import CORSMiddleware
 from jose import jwt, JWTError
@@ -664,6 +664,268 @@ async def get_analytics_summary(
         "total_messages": token_stats.total_messages or 0,
         "total_sessions": sum(count for _, count in case_stats)
     })
+
+
+# Evaluation endpoints
+
+class EvaluationCriterion(BaseModel):
+    name: str
+    score: int
+    explanation: str
+
+
+class EvaluationResponse(BaseModel):
+    id: int
+    session_id: str
+    created_at: datetime
+    criteria: List[EvaluationCriterion]
+    improvement_suggestions: List[str]
+
+
+@app.post("/api/sessions/{session_id}/evaluate", response_model=EvaluationResponse)
+async def evaluate_session(
+    session_id: str,
+    request: Request,
+    db: OrmSession = Depends(get_db)
+) -> EvaluationResponse:
+    """Evaluate anamnesis performance for a session."""
+    user = require_user(request)
+    
+    # Check if this is a VHB user - they cannot use evaluation feature
+    if user.get("is_vhb_user", False):
+        raise HTTPException(
+            status_code=403, 
+            detail="Evaluation feature is only available for TUM users"
+        )
+    
+    # Check if session is in VHB sessions (shouldn't happen, but double-check)
+    if session_id in vhb_sessions:
+        raise HTTPException(
+            status_code=403, 
+            detail="Evaluation not available for VHB sessions"
+        )
+    
+    # Get session from database
+    chat_session = db.get(ChatSession, session_id)
+    if chat_session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    # Check if evaluation already exists
+    existing_evaluation = db.query(Evaluation).filter(
+        Evaluation.session_id == session_id
+    ).first()
+    
+    if existing_evaluation:
+        # Return existing evaluation
+        return _format_evaluation_response(existing_evaluation)
+    
+    # Get all messages for this session
+    messages = db.query(Message).filter(
+        Message.session_id == session_id
+    ).order_by(Message.id.asc()).all()
+    
+    # Count user messages (excluding system messages)
+    user_message_count = sum(1 for m in messages if m.role == "user")
+    
+    if user_message_count < 5:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Insufficient messages for evaluation. Need at least 5 user messages, found {user_message_count}"
+        )
+    
+    # Build conversation history for evaluation
+    conversation = []
+    for msg in messages:
+        if msg.role in ("user", "assistant"):
+            conversation.append(f"{msg.role.capitalize()}: {msg.content}")
+    
+    conversation_text = "\n\n".join(conversation)
+    
+    # Build evaluation prompt
+    evaluation_prompt = f"""Sie sind ein medizinischer Ausbilder, der die Anamnese-Fähigkeiten eines Arztes bewertet.
+
+Analysieren Sie das folgende Gespräch zwischen einem Arzt (User) und einem Patienten (Assistant):
+
+{conversation_text}
+
+Geben Sie Rückmeldung dazu, wie der Arzt die Anamnese verbessern könnte.
+
+Ihr Feedback soll die folgenden acht Kriterien enthalten:
+
+1. Gesprächsführung: Beurteilen Sie, ob der Arzt das Gespräch geführt hat, um die erforderlichen Informationen zu erhalten.
+
+2. Erkennung relevanter Informationen: Beurteilen Sie, ob der Arzt alle relevanten Informationen erkennt.
+
+3. Zielgerichtete Fragen: Beurteilen Sie, ob der Arzt zielgerichtete Fragen formuliert, um Symptome detailliert zu erfassen und zu spezifizieren.
+
+4. Spezifische Ursachen: Beurteilen Sie, ob die Fragen des Arztes nahelegen, dass spezifische Ursachen oder Umstände zu bestimmten Symptomen führen.
+
+5. Logische Reihenfolge: Beurteilen Sie, ob der Arzt die Fragen in einer logischen Reihenfolge stellt.
+
+6. Rückversicherung: Beurteilen Sie, ob der Arzt den Patienten rückversichert, dass er die Informationen korrekt verstanden hat.
+
+7. Zusammenfassung: Beurteilen Sie, ob der Arzt seine gesammelten Informationen vor dem Gesprächsende zusammengefasst hat.
+
+8. Qualität und Zeit: Beurteilen Sie, ob der Arzt ausreichend hochwertige Informationen in angemessener Zeit erhoben hat.
+
+Weisen Sie jedem der acht Kriterien eine Bewertung nach folgendem Schema zu:
+1 - Erfüllt das Kriterium nicht
+2 - Erfüllt das Kriterium eher nicht
+3 - Erfüllt das Kriterium teilweise
+4 - Erfüllt das Kriterium eher
+5 - Erfüllt das Kriterium vollständig
+
+Erläutern Sie die Bewertung mit zwei Sätzen.
+
+Erstellen Sie drei Verbesserungsvorschläge in Stichpunkten, die auf die Stärkung klinischer Entscheidungsfähigkeiten abzielen.
+
+WICHTIG: Antworten Sie ausschließlich im folgenden JSON-Format (ohne zusätzlichen Text):
+{{
+  "criteria": [
+    {{"name": "Gesprächsführung", "score": 1-5, "explanation": "Zwei Sätze Erklärung"}},
+    {{"name": "Erkennung relevanter Informationen", "score": 1-5, "explanation": "Zwei Sätze Erklärung"}},
+    {{"name": "Zielgerichtete Fragen", "score": 1-5, "explanation": "Zwei Sätze Erklärung"}},
+    {{"name": "Spezifische Ursachen", "score": 1-5, "explanation": "Zwei Sätze Erklärung"}},
+    {{"name": "Logische Reihenfolge", "score": 1-5, "explanation": "Zwei Sätze Erklärung"}},
+    {{"name": "Rückversicherung", "score": 1-5, "explanation": "Zwei Sätze Erklärung"}},
+    {{"name": "Zusammenfassung", "score": 1-5, "explanation": "Zwei Sätze Erklärung"}},
+    {{"name": "Qualität und Zeit", "score": 1-5, "explanation": "Zwei Sätze Erklärung"}}
+  ],
+  "suggestions": ["Vorschlag 1", "Vorschlag 2", "Vorschlag 3"]
+}}"""
+    
+    # Call OpenAI to generate evaluation
+    try:
+        client = _get_openai_client()
+        completion = client.chat.completions.create(
+            model=settings.openai_model,
+            messages=[
+                {"role": "system", "content": "Sie sind ein medizinischer Ausbilder. Antworten Sie ausschließlich im angeforderten JSON-Format."},
+                {"role": "user", "content": evaluation_prompt}
+            ],
+            temperature=0.7,
+            max_tokens=2000,
+        )
+        
+        response_text = completion.choices[0].message.content or ""
+        
+        # Parse JSON response
+        try:
+            evaluation_data = json.loads(response_text)
+        except json.JSONDecodeError:
+            # Try to extract JSON from markdown code blocks if present
+            if "```json" in response_text:
+                json_start = response_text.find("```json") + 7
+                json_end = response_text.find("```", json_start)
+                response_text = response_text[json_start:json_end].strip()
+                evaluation_data = json.loads(response_text)
+            elif "```" in response_text:
+                json_start = response_text.find("```") + 3
+                json_end = response_text.find("```", json_start)
+                response_text = response_text[json_start:json_end].strip()
+                evaluation_data = json.loads(response_text)
+            else:
+                raise
+        
+        # Validate structure
+        if "criteria" not in evaluation_data or "suggestions" not in evaluation_data:
+            raise ValueError("Invalid evaluation response structure")
+        
+        if len(evaluation_data["criteria"]) != 8:
+            raise ValueError(f"Expected 8 criteria, got {len(evaluation_data['criteria'])}")
+        
+        # Create evaluation record
+        evaluation = Evaluation(
+            session_id=session_id,
+            criterion1_score=evaluation_data["criteria"][0]["score"],
+            criterion1_explanation=evaluation_data["criteria"][0]["explanation"],
+            criterion2_score=evaluation_data["criteria"][1]["score"],
+            criterion2_explanation=evaluation_data["criteria"][1]["explanation"],
+            criterion3_score=evaluation_data["criteria"][2]["score"],
+            criterion3_explanation=evaluation_data["criteria"][2]["explanation"],
+            criterion4_score=evaluation_data["criteria"][3]["score"],
+            criterion4_explanation=evaluation_data["criteria"][3]["explanation"],
+            criterion5_score=evaluation_data["criteria"][4]["score"],
+            criterion5_explanation=evaluation_data["criteria"][4]["explanation"],
+            criterion6_score=evaluation_data["criteria"][5]["score"],
+            criterion6_explanation=evaluation_data["criteria"][5]["explanation"],
+            criterion7_score=evaluation_data["criteria"][6]["score"],
+            criterion7_explanation=evaluation_data["criteria"][6]["explanation"],
+            criterion8_score=evaluation_data["criteria"][7]["score"],
+            criterion8_explanation=evaluation_data["criteria"][7]["explanation"],
+            improvement_suggestions=evaluation_data["suggestions"]
+        )
+        
+        db.add(evaluation)
+        db.commit()
+        db.refresh(evaluation)
+        
+        return _format_evaluation_response(evaluation)
+        
+    except json.JSONDecodeError as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to parse evaluation response: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Evaluation failed: {str(e)}"
+        )
+
+
+def _format_evaluation_response(evaluation: Evaluation) -> EvaluationResponse:
+    """Format an Evaluation model instance as an EvaluationResponse."""
+    criteria = [
+        EvaluationCriterion(
+            name="Gesprächsführung",
+            score=evaluation.criterion1_score,
+            explanation=evaluation.criterion1_explanation
+        ),
+        EvaluationCriterion(
+            name="Erkennung relevanter Informationen",
+            score=evaluation.criterion2_score,
+            explanation=evaluation.criterion2_explanation
+        ),
+        EvaluationCriterion(
+            name="Zielgerichtete Fragen",
+            score=evaluation.criterion3_score,
+            explanation=evaluation.criterion3_explanation
+        ),
+        EvaluationCriterion(
+            name="Spezifische Ursachen",
+            score=evaluation.criterion4_score,
+            explanation=evaluation.criterion4_explanation
+        ),
+        EvaluationCriterion(
+            name="Logische Reihenfolge",
+            score=evaluation.criterion5_score,
+            explanation=evaluation.criterion5_explanation
+        ),
+        EvaluationCriterion(
+            name="Rückversicherung",
+            score=evaluation.criterion6_score,
+            explanation=evaluation.criterion6_explanation
+        ),
+        EvaluationCriterion(
+            name="Zusammenfassung",
+            score=evaluation.criterion7_score,
+            explanation=evaluation.criterion7_explanation
+        ),
+        EvaluationCriterion(
+            name="Qualität und Zeit",
+            score=evaluation.criterion8_score,
+            explanation=evaluation.criterion8_explanation
+        ),
+    ]
+    
+    return EvaluationResponse(
+        id=evaluation.id,
+        session_id=evaluation.session_id,
+        created_at=evaluation.created_at,
+        criteria=criteria,
+        improvement_suggestions=evaluation.improvement_suggestions
+    )
 
 
 # Mount static files and serve frontend (production only)

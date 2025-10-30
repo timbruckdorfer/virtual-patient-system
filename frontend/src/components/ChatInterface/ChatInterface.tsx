@@ -1,17 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Box, 
   Typography, 
   Alert, 
   CircularProgress,
   List,
-  Paper
+  Paper,
+  Snackbar
 } from '@mui/material';
 import { ChatBubbleOutline, Lightbulb, Person } from '@mui/icons-material';
-import { Message, CaseDetails } from '@/types';
+import { Message, CaseDetails, Evaluation } from '@/types';
 import { MessageBubble } from '@/components/MessageBubble';
 import { ChatInput } from '@/components/ChatInput';
 import { SessionInfo } from '@/components/SessionInfo';
+import { EvaluationDialog } from '@/components/EvaluationDialog';
+import { apiClient } from '@/lib/api';
 
 // Use same API URL logic as api.ts
 const getApiBaseUrl = () => {
@@ -43,11 +47,19 @@ const CASE_TITLES: Record<string, string> = {
 };
 
 export function ChatInterface({ sessionId, caseId, onReset }: ChatInterfaceProps) {
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [caseDetails, setCaseDetails] = useState<CaseDetails | null>(null);
+  const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [evaluationError, setEvaluationError] = useState<string | null>(null);
+  const [showEvaluationDialog, setShowEvaluationDialog] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Calculate user message count
+  const userMessageCount = messages.filter(m => m.role === 'user').length;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -129,12 +141,38 @@ export function ChatInterface({ sessionId, caseId, onReset }: ChatInterfaceProps
     return CASE_TITLES[caseId] || caseId;
   };
 
+  const handleEvaluate = async () => {
+    setIsEvaluating(true);
+    setEvaluationError(null);
+
+    try {
+      const result = await apiClient.evaluateSession(sessionId);
+      setEvaluation(result);
+      setShowEvaluationDialog(true);
+    } catch (error) {
+      console.error('Error evaluating session:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Evaluation fehlgeschlagen';
+      setEvaluationError(errorMessage);
+    } finally {
+      setIsEvaluating(false);
+    }
+  };
+
+  const handleCloseEvaluation = () => {
+    setShowEvaluationDialog(false);
+    // Navigate back to case selection
+    navigate('/');
+  };
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <SessionInfo 
         caseTitle={getCaseTitle(caseId)}
         sessionId={sessionId}
+        messageCount={userMessageCount}
         onReset={onReset}
+        onEvaluate={handleEvaluate}
+        isEvaluating={isEvaluating}
       />
       
       <Box 
@@ -284,6 +322,25 @@ export function ChatInterface({ sessionId, caseId, onReset }: ChatInterfaceProps
       </Box>
       
       <ChatInput onSendMessage={sendMessage} disabled={isLoading} />
+
+      {/* Evaluation Dialog */}
+      <EvaluationDialog
+        open={showEvaluationDialog}
+        evaluation={evaluation}
+        onClose={handleCloseEvaluation}
+      />
+
+      {/* Evaluation Error Snackbar */}
+      <Snackbar
+        open={!!evaluationError}
+        autoHideDuration={6000}
+        onClose={() => setEvaluationError(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="error" onClose={() => setEvaluationError(null)} sx={{ width: '100%' }}>
+          {evaluationError}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
