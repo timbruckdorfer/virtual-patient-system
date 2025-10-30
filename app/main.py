@@ -49,6 +49,26 @@ async def health() -> dict:
     return {"status": "ok"}
 
 
+@app.get("/health/oidc")
+async def health_oidc() -> dict:
+    """Debug endpoint to check OIDC configuration (sanitized)."""
+    return {
+        "oidc_configured": all([
+            settings.oidc_auth_url,
+            settings.oidc_client_id,
+            settings.oidc_redirect_uri,
+        ]),
+        "oidc_issuer": settings.oidc_issuer[:20] + "..." if settings.oidc_issuer else None,
+        "oidc_client_id": settings.oidc_client_id[:10] + "..." if settings.oidc_client_id else None,
+        "oidc_auth_url": settings.oidc_auth_url[:30] + "..." if settings.oidc_auth_url else None,
+        "oidc_token_url": settings.oidc_token_url[:30] + "..." if settings.oidc_token_url else None,
+        "oidc_jwks_url": settings.oidc_jwks_url[:30] + "..." if settings.oidc_jwks_url else None,
+        "oidc_redirect_uri": settings.oidc_redirect_uri if settings.oidc_redirect_uri else None,
+        "frontend_url": settings.frontend_url if settings.frontend_url else None,
+        "environment": settings.environment,
+    }
+
+
 @app.get("/health/db")
 async def health_db(db: OrmSession = Depends(get_db)) -> dict:
     """Check database connectivity."""
