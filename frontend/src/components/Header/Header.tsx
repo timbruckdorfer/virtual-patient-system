@@ -157,9 +157,9 @@ export function Header() {
                 <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                   {user.name || 'TUM User'}
                 </Typography>
-                {user.sub && (
+                {user.tum_id && (
                   <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'monospace', mt: 0.5 }}>
-                    ID: {user.sub}
+                    TUM ID: {user.tum_id}
                   </Typography>
                 )}
                 {user.email && (

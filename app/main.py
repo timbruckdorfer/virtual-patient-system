@@ -268,10 +268,22 @@ async def auth_me(request: Request) -> JSONResponse:
     user = get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    # Extract TUM ID from preferred_username or other common claim fields
+    tum_id = (
+        user.get("preferred_username") or 
+        user.get("login") or 
+        user.get("tumid") or 
+        user.get("username") or
+        user.get("sub")  # fallback to sub if nothing else available
+    )
+    
     return JSONResponse(content={
         "sub": user.get("sub"),
+        "tum_id": tum_id,
         "email": user.get("email"),
         "name": user.get("name"),
+        "all_claims": user if settings.environment == "development" else None  # Debug: show all claims in dev
     })
 
 
@@ -397,10 +409,20 @@ async def create_session(
     else:
         # Normal TUM user: persist to database
         _ensure_case(db, req.case_id)
+        
+        # Extract TUM ID from the most likely claim field
+        tum_id = (
+            user.get("preferred_username") or 
+            user.get("login") or 
+            user.get("tumid") or 
+            user.get("username") or
+            user.get("sub")  # fallback
+        )
+        
         chat_session = ChatSession(
             id=session_id,
             case_id=req.case_id,
-            user_id=user.get("sub")
+            user_id=tum_id
         )
         db.add(chat_session)
         db.add(Message(session_id=session_id, role="system", content=f"Case: {req.case_id}"))
