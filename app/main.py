@@ -168,44 +168,57 @@ async def _fetch_jwks() -> dict:
         return res.json()
 
 
+def _extract_tum_id_from_claims(claims: dict) -> Optional[str]:
+    """Extract TUM ID from OIDC claims. Tries multiple methods."""
+    # Method 1: Extract from email (e.g., ge38qap@mytum.de -> ge38qap)
+    email = claims.get("email")
+    if email and "@mytum.de" in email:
+        tum_id_from_email = email.split("@")[0]
+        if tum_id_from_email and len(tum_id_from_email) > 0:
+            return tum_id_from_email
+    
+    # Method 2: Try common OIDC claim fields
+    tum_id = (
+        claims.get("preferred_username") or 
+        claims.get("login") or 
+        claims.get("tumid") or 
+        claims.get("username") or
+        claims.get("user_id") or
+        claims.get("tum_user_id")
+    )
+    if tum_id:
+        return tum_id
+    
+    # Method 3: If email exists but not @mytum.de, extract username part
+    if email and "@" in email:
+        username_part = email.split("@")[0]
+        # Only use if it looks like a TUM ID (starts with letter, 6-8 chars)
+        if len(username_part) >= 6 and len(username_part) <= 8 and username_part[0].isalpha():
+            return username_part
+    
+    # Fallback: return None (will use sub as fallback later)
+    return None
+
+
 def _set_session(response: RedirectResponse, claims: dict) -> None:
-    """Store user claims in session cookie. Filters and sanitizes claims for JWT encoding."""
-    session_claims = {}
+    """Store user claims in session cookie. Extracts TUM ID at auth time."""
+    # Extract TUM ID when we have all the claims
+    tum_id = _extract_tum_id_from_claims(claims)
     
-    # Copy all claims, but filter out JWT technical fields and ensure JSON serializable
-    for key, value in claims.items():
-        # Skip JWT technical fields (we set our own)
-        if key in ["iat", "exp", "nbf", "jti", "aud", "iss"]:
-            continue
-        # Only store JSON-serializable values (strings, numbers, booleans, lists, dicts)
-        try:
-            json.dumps(value)  # Test if serializable
-            session_claims[key] = value
-        except (TypeError, ValueError):
-            # Skip non-serializable values (e.g., datetime objects)
-            continue
+    session_claims = {
+        "sub": claims.get("sub"),
+        "email": claims.get("email"),
+        "name": claims.get("name"),
+        "iat": int(time.time()),
+        "exp": int(time.time()) + 60 * 60 * 24,  # 24h
+    }
     
-    # Add our own session fields
-    session_claims["iat"] = int(time.time())
-    session_claims["exp"] = int(time.time()) + 60 * 60 * 24  # 24h
+    # Only add tum_id if we found one (don't add None)
+    if tum_id:
+        session_claims["tum_id"] = tum_id
     
-    try:
-        token = _sign(session_claims)
-        _set_cookie(response, "session", token, max_age=60 * 60 * 24)
-    except Exception as e:
-        # If signing fails, log error but don't crash - fallback to minimal claims
-        import logging
-        logging.error(f"Failed to sign session claims: {e}")
-        # Fallback: store minimal claims only
-        minimal_claims = {
-            "sub": claims.get("sub"),
-            "email": claims.get("email"),
-            "name": claims.get("name"),
-            "iat": int(time.time()),
-            "exp": int(time.time()) + 60 * 60 * 24,
-        }
-        token = _sign(minimal_claims)
-        _set_cookie(response, "session", token, max_age=60 * 60 * 24)
+    token = _sign(session_claims)
+    _set_cookie(response, "session", token, max_age=60 * 60 * 24)
 
 
 def get_current_user(request: Request) -> Optional[dict]:
@@ -216,27 +229,6 @@ def get_current_user(request: Request) -> Optional[dict]:
         return _verify(token)
     except HTTPException:
         return None
-
-
-def _extract_tum_id(user: dict) -> str:
-    """Extract TUM ID from user claims. Tries multiple possible fields."""
-    # Try extracting from email if it exists (format: ge38qap@mytum.de)
-    email = user.get("email", "")
-    if email and "@mytum.de" in email:
-        tum_id_from_email = email.split("@")[0]
-        if tum_id_from_email:  # Only use if non-empty
-            return tum_id_from_email
-    
-    # Try other common claim fields
-    return (
-        user.get("preferred_username") or 
-        user.get("login") or 
-        user.get("tumid") or 
-        user.get("username") or
-        user.get("user_id") or
-        user.get("tum_user_id") or
-        user.get("sub")  # fallback to sub if nothing else available
-    )
 
 
 def require_user(request: Request) -> dict:
@@ -318,16 +310,15 @@ async def auth_me(request: Request) -> JSONResponse:
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
-    # Extract TUM ID using helper function
-    tum_id = _extract_tum_id(user)
+    # Use stored tum_id from session (extracted at auth time)
+    # Fallback to sub if tum_id wasn't found during authentication
+    tum_id = user.get("tum_id") or user.get("sub")
     
-    # Always show all claims for debugging (can remove later)
     return JSONResponse(content={
         "sub": user.get("sub"),
         "tum_id": tum_id,
         "email": user.get("email"),
         "name": user.get("name"),
-        "all_claims": user  # Show all claims to debug TUM ID field
     })
 
 
@@ -454,8 +445,9 @@ async def create_session(
         # Normal TUM user: persist to database
         _ensure_case(db, req.case_id)
         
-        # Extract TUM ID using helper function
-        tum_id = _extract_tum_id(user)
+        # Use stored tum_id from session cookie (extracted at auth time)
+        # Fallback to sub if tum_id wasn't found
+        tum_id = user.get("tum_id") or user.get("sub")
         
         chat_session = ChatSession(
             id=session_id,
