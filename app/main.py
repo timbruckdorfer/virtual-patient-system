@@ -511,6 +511,7 @@ async def transcribe_audio(
 class SessionSummary(BaseModel):
     session_id: str
     case_id: str
+    user_id: Optional[str]
     started_at: datetime
     ended_at: Optional[datetime]
     message_count: int
@@ -557,6 +558,7 @@ async def export_sessions(
         session_summaries.append(SessionSummary(
             session_id=session.id,
             case_id=session.case_id,
+            user_id=session.user_id,
             started_at=session.started_at,
             ended_at=session.ended_at,
             message_count=token_stats.msg_count or 0,

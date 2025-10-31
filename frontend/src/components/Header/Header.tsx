@@ -153,10 +153,15 @@ export function Header() {
               anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
               sx={{ mt: 1 }}
             >
-              <Box sx={{ px: 2, py: 1.5, minWidth: 200 }}>
+              <Box sx={{ px: 2, py: 1.5, minWidth: 250 }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                   {user.name || 'TUM User'}
                 </Typography>
+                {user.sub && (
+                  <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'monospace', mt: 0.5 }}>
+                    ID: {user.sub}
+                  </Typography>
+                )}
                 {user.email && (
                   <Typography variant="body2" color="text.secondary">
                     {user.email}
