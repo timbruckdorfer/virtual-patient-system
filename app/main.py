@@ -278,12 +278,13 @@ async def auth_me(request: Request) -> JSONResponse:
         user.get("sub")  # fallback to sub if nothing else available
     )
     
+    # Always show all claims for debugging (can remove later)
     return JSONResponse(content={
         "sub": user.get("sub"),
         "tum_id": tum_id,
         "email": user.get("email"),
         "name": user.get("name"),
-        "all_claims": user if settings.environment == "development" else None  # Debug: show all claims in dev
+        "all_claims": user  # Show all claims to debug TUM ID field
     })
 
 
