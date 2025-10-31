@@ -169,10 +169,10 @@ async def _fetch_jwks() -> dict:
 
 
 def _set_session(response: RedirectResponse, claims: dict) -> None:
+    # Store ALL claims from TUM OIDC, not just a few fields
+    # This preserves important fields like preferred_username, login, etc.
     session_claims = {
-        "sub": claims.get("sub"),
-        "email": claims.get("email"),
-        "name": claims.get("name"),
+        **claims,  # Store all claims from TUM OIDC
         "iat": int(time.time()),
         "exp": int(time.time()) + 60 * 60 * 24,  # 24h
     }
@@ -188,6 +188,27 @@ def get_current_user(request: Request) -> Optional[dict]:
         return _verify(token)
     except HTTPException:
         return None
+
+
+def _extract_tum_id(user: dict) -> str:
+    """Extract TUM ID from user claims. Tries multiple possible fields."""
+    # Try extracting from email if it exists (format: ge38qap@mytum.de)
+    email = user.get("email", "")
+    if email and "@mytum.de" in email:
+        tum_id_from_email = email.split("@")[0]
+        if tum_id_from_email:  # Only use if non-empty
+            return tum_id_from_email
+    
+    # Try other common claim fields
+    return (
+        user.get("preferred_username") or 
+        user.get("login") or 
+        user.get("tumid") or 
+        user.get("username") or
+        user.get("user_id") or
+        user.get("tum_user_id") or
+        user.get("sub")  # fallback to sub if nothing else available
+    )
 
 
 def require_user(request: Request) -> dict:
@@ -269,14 +290,8 @@ async def auth_me(request: Request) -> JSONResponse:
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
-    # Extract TUM ID from preferred_username or other common claim fields
-    tum_id = (
-        user.get("preferred_username") or 
-        user.get("login") or 
-        user.get("tumid") or 
-        user.get("username") or
-        user.get("sub")  # fallback to sub if nothing else available
-    )
+    # Extract TUM ID using helper function
+    tum_id = _extract_tum_id(user)
     
     # Always show all claims for debugging (can remove later)
     return JSONResponse(content={
@@ -411,14 +426,8 @@ async def create_session(
         # Normal TUM user: persist to database
         _ensure_case(db, req.case_id)
         
-        # Extract TUM ID from the most likely claim field
-        tum_id = (
-            user.get("preferred_username") or 
-            user.get("login") or 
-            user.get("tumid") or 
-            user.get("username") or
-            user.get("sub")  # fallback
-        )
+        # Extract TUM ID using helper function
+        tum_id = _extract_tum_id(user)
         
         chat_session = ChatSession(
             id=session_id,
