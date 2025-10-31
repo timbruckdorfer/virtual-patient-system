@@ -19,7 +19,7 @@ const cases: Case[] = [
   {
     id: 'bauchschmerzen',
     title: 'Bauchschmerzen',
-    description: 'Herr Peter Lenz, 52 Jahre, LKW-Fahrer',
+    description: 'Herr Peter Lenz, 42 Jahre, LKW-Fahrer',
     image: '/patients/peter_lenz.png'
   },
   {
@@ -37,7 +37,7 @@ const cases: Case[] = [
   {
     id: 'dyspnoe',
     title: 'Dyspnoe',
-    description: 'Frau Karin Seidel, 68 Jahre, Pensionierte Buchhalterin',
+    description: 'Frau Karin Seidel, 68 Jahre, Rentnerin',
     image: '/patients/karin_seidel.png'
   },
   {

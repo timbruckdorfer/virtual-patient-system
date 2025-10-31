@@ -268,21 +268,27 @@ export function ChatInterface({ sessionId, caseId, onReset }: ChatInterfaceProps
                   Tipps für ein gutes Gespräch:
                 </Typography>
               </Box>
-              <List sx={{ listStyleType: 'disc', pl: 4 }}>
-                <Typography component="li" variant="body2" color="text.secondary" sx={{ display: 'list-item', mb: 0.5 }}>
-                  Halten Sie das Gespräch natürlich und einfach
+              <List sx={{ listStyleType: 'disc', pl: 4, textAlign: 'left' }}>
+                <Typography component="li" variant="body2" color="text.secondary" sx={{ display: 'list-item', mb: 0.5, textAlign: 'left' }}>
+                Beginnen Sie mit offenen Fragen, damit die Patientin oder der Patient die Beschwerden in eigenen Worten schildern kann.
                 </Typography>
-                <Typography component="li" variant="body2" color="text.secondary" sx={{ display: 'list-item', mb: 0.5 }}>
-                  Stellen Sie nur eine Frage auf einmal
+                <Typography component="li" variant="body2" color="text.secondary" sx={{ display: 'list-item', mb: 0.5, textAlign: 'left' }}>
+                Hören Sie aktiv zu und gehen Sie auf das Gesagte ein, bevor Sie gezielter nachfragen.
                 </Typography>
-                <Typography component="li" variant="body2" color="text.secondary" sx={{ display: 'list-item', mb: 0.5 }}>
-                  Hören Sie aktiv zu und gehen Sie auf die Antworten ein
+                <Typography component="li" variant="body2" color="text.secondary" sx={{ display: 'list-item', mb: 0.5, textAlign: 'left' }}>
+                Strukturieren Sie Ihr Gespräch klar, um sicherzustellen, dass Sie keine wichtigen Punkte auslassen.
                 </Typography>
-                <Typography component="li" variant="body2" color="text.secondary" sx={{ display: 'list-item', mb: 0.5 }}>
-                  Verwenden Sie eine verständliche, patientenfreundliche Sprache
+                <Typography component="li" variant="body2" color="text.secondary" sx={{ display: 'list-item', mb: 0.5, textAlign: 'left' }}>
+                Stellen Sie präzise Nachfragen, wenn Ihnen etwas unklar ist oder Sie Symptome genauer eingrenzen möchten.
                 </Typography>
-                <Typography component="li" variant="body2" color="text.secondary" sx={{ display: 'list-item' }}>
-                  Strukturieren Sie Ihre Anamnese systematisch
+                <Typography component="li" variant="body2" color="text.secondary" sx={{ display: 'list-item', mb: 0.5, textAlign: 'left' }}>
+                Überlegen Sie während des Gesprächs: Welche Informationen benötige ich, um mir ein vollständiges Bild zu machen?
+                </Typography>
+                <Typography component="li" variant="body2" color="text.secondary" sx={{ display: 'list-item', mb: 0.5, textAlign: 'left' }}>
+                Sichern Sie Ihr Verständnis, indem Sie gelegentlich zusammenfassen oder wiederholen, was Sie gehört haben.
+                </Typography>
+                <Typography component="li" variant="body2" color="text.secondary" sx={{ display: 'list-item', textAlign: 'left' }}>
+                Beenden Sie das Gespräch, indem Sie die wichtigsten Punkte noch einmal kurz zusammenfassen.
                 </Typography>
               </List>
             </Paper>

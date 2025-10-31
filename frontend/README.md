@@ -68,8 +68,8 @@ VITE_API_URL=http://127.0.0.1:8000
 
 ## Available Cases
 
-- **Bauchschmerzen (Epigastrium)**: Herr Peter Lenz, 52, LKW-Fahrer
-  - Symptoms: Epigastrische Schmerzen seit heute Morgen
+- **Bauchschmerzen (Chronisch)**: Herr Peter Lenz, 42, LKW-Fahrer
+  - Symptoms: Chronische Oberbauchschmerzen seit mehreren Wochen
   - Difficulty: Anfänger
 
 ## API Integration
