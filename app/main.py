@@ -169,15 +169,43 @@ async def _fetch_jwks() -> dict:
 
 
 def _set_session(response: RedirectResponse, claims: dict) -> None:
-    # Store ALL claims from TUM OIDC, not just a few fields
-    # This preserves important fields like preferred_username, login, etc.
-    session_claims = {
-        **claims,  # Store all claims from TUM OIDC
-        "iat": int(time.time()),
-        "exp": int(time.time()) + 60 * 60 * 24,  # 24h
-    }
-    token = _sign(session_claims)
-    _set_cookie(response, "session", token, max_age=60 * 60 * 24)
+    """Store user claims in session cookie. Filters and sanitizes claims for JWT encoding."""
+    session_claims = {}
+    
+    # Copy all claims, but filter out JWT technical fields and ensure JSON serializable
+    for key, value in claims.items():
+        # Skip JWT technical fields (we set our own)
+        if key in ["iat", "exp", "nbf", "jti", "aud", "iss"]:
+            continue
+        # Only store JSON-serializable values (strings, numbers, booleans, lists, dicts)
+        try:
+            json.dumps(value)  # Test if serializable
+            session_claims[key] = value
+        except (TypeError, ValueError):
+            # Skip non-serializable values (e.g., datetime objects)
+            continue
+    
+    # Add our own session fields
+    session_claims["iat"] = int(time.time())
+    session_claims["exp"] = int(time.time()) + 60 * 60 * 24  # 24h
+    
+    try:
+        token = _sign(session_claims)
+        _set_cookie(response, "session", token, max_age=60 * 60 * 24)
+    except Exception as e:
+        # If signing fails, log error but don't crash - fallback to minimal claims
+        import logging
+        logging.error(f"Failed to sign session claims: {e}")
+        # Fallback: store minimal claims only
+        minimal_claims = {
+            "sub": claims.get("sub"),
+            "email": claims.get("email"),
+            "name": claims.get("name"),
+            "iat": int(time.time()),
+            "exp": int(time.time()) + 60 * 60 * 24,
+        }
+        token = _sign(minimal_claims)
+        _set_cookie(response, "session", token, max_age=60 * 60 * 24)
 
 
 def get_current_user(request: Request) -> Optional[dict]:
